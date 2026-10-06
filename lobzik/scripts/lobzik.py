@@ -14,7 +14,7 @@
     python lobzik.py regs --elf build/app.elf   # где стоит ядро, разбор HardFault
     python lobzik.py uart --reset --time 10     # лог с загрузки
     python lobzik.py power on                   # 3.3 В на цель от зонда
-    python lobzik.py reflash fretsaw_bmp.bin    # обновить прошивку Лобзика
+    python lobzik.py reflash                    # обновить прошивку Лобзика (свежая из релизов)
     python lobzik.py gdb "mon help"             # любые команды GDB
 
 Нужны: Python 3.8+, pyserial; GDB под архитектуру цели (arm-none-eabi-gdb,
@@ -41,6 +41,7 @@ BMP_VID, BMP_PID = 0x1D50, 0x6018
 GDB_IF, UART_IF, DFU_IF = 0, 2, 4  # интерфейсы USB зонда
 ST_DFU_VID, ST_DFU_PID = 0x0483, 0xDF11
 FLASH_BASE = "0x08000000"
+FIRMWARE_URL = "https://github.com/Kits-Lab-Dev/blackmagic/releases/latest/download/fretsaw_bmp.bin"
 DEFAULT_FREQ = "2M"  # SWD 2 МГц: запись ~23 КБ/с, по умолчанию зонд в разы медленнее
 
 # Регистры SCB Cortex-M для разбора отказов
@@ -550,8 +551,22 @@ def _dfu_present():
         return None
 
 
+def download_firmware():
+    """Скачать свежий fretsaw_bmp.bin из релизов KitsLab во временную папку."""
+    import tempfile
+    import urllib.request
+    path = os.path.join(tempfile.gettempdir(), "fretsaw_bmp.bin")
+    log(f"Скачиваю {FIRMWARE_URL}")
+    try:
+        with urllib.request.urlopen(FIRMWARE_URL, timeout=60) as r, open(path, "wb") as f:
+            f.write(r.read())
+    except OSError as e:
+        sys.exit(f"Не скачалось ({e}). Скачайте вручную: {FIRMWARE_URL}")
+    return path
+
+
 def cmd_reflash(args):
-    fw = os.path.abspath(args.bin)
+    fw = os.path.abspath(args.bin) if args.bin else download_firmware()
     if not os.path.exists(fw):
         sys.exit(f"Нет файла {fw}")
     if not fw.lower().endswith(".bin"):
@@ -695,7 +710,7 @@ def main():
     s.add_argument("state", choices=["on", "off", "status"])
 
     s = sub.add_parser("reflash", help="обновить прошивку самого Лобзика")
-    s.add_argument("bin")
+    s.add_argument("bin", nargs="?", help="файл .bin; без него — свежий из релизов KitsLab")
 
     s = sub.add_parser("gdb", help="произвольные команды GDB")
     s.add_argument("commands", nargs="+")

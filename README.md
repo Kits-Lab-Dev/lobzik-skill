@@ -42,6 +42,12 @@ python lobzik/scripts/lobzik.py uart --reset --time 10
 python lobzik/scripts/lobzik.py --help
 ```
 
+## Прошивка Лобзика
+
+Свежая прошивка — в [релизах](https://github.com/Kits-Lab-Dev/blackmagic/releases/latest)
+(`fretsaw_bmp.bin`). Обновить: `python lobzik/scripts/lobzik.py reflash` — скрипт сам скачает
+её и запишет, кнопку нажимать не нужно (с прошивки от 30.09.2026).
+
 ## Лицензия
 
 MIT — см. `LICENSE`.
